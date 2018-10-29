@@ -258,7 +258,7 @@ View(dataset)
 # Fitting the SVR to the dataset
 
 # using the e1071 package:
-install.packages('e1071')
+#install.packages('e1071')
 library(e1071)
 
 regressor = svm(formula = Salary ~ Level, data = dataset, type = 'eps-regression') # using the Gaussian kernel
@@ -280,6 +280,161 @@ ggplot() + geom_point(aes(x = dataset$Level, y = dataset$Salary), colour = 'red'
   xlab('Level') +
   ylab('Salary')
 
-# remember that the CEO salary is anomalous
+# remember that the CEO salary is anomalous, but we can tune the model to meet that value better
+
+#################################################
+### Section 8 - Lecture 74- Decision Tree Regression in R
+################################################
+
+dataset = read.csv("Machine Learning A-Z/Part 2 - Regression/Section 8 - Decision Tree Regression/Position_Salaries.csv")
+
+# this model uses the rpart package:
 
 
+library(rpart)
+
+#create the regressor:
+
+regressor = rpart(formula = Salary ~ Level, 
+                  data = dataset)
+
+# no need to scale because this model doesn't use the Euclidean distances
+
+
+# predict hte salary:
+
+y_pred = predict(regressor, newdata = data.frame(Level = 6.5)) # not too sure why this doesn't work; works in previous part
+
+library(ggplot2)
+
+ggplot() + 
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), colour = 'red') +
+  geom_line(aes(x = dataset$Level, y = predict(regressor, newdata = dataset)), colour = 'blue') +
+  ggtitle('Truth or bluff (Decision Tree Regression)') +
+  xlab('Level') + 
+  ylab('Salary')
+
+# now, we see the straight horizontal line just like SVR, Not feature scaling issue this time
+
+# This is not the best version of the decision tree that we have made
+
+# this is related to the number of splits in the decision tree; there is clearly no split
+
+# let's set the parameters on the split:
+
+regressor = rpart(formula = Salary ~ Level , 
+                  data = dataset,
+                  control = rpart.control(minsplit = 1))
+
+y_pred = predict(regressor, data.frame(Level = 6.5))
+
+  
+# plot again:
+
+ggplot() + 
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), colour = 'red') +
+  geom_line(aes(x = dataset$Level, y = predict(regressor, newdata = dataset)), colour = 'blue') +
+  ggtitle('Truth or bluff (Decision Tree Regression)') +
+  xlab('Level') + 
+  ylab('Salary')
+
+
+# TRAP - red flag!
+# is this the real look of the decision tree model? no! this takes rectangles and uses the average of the split values
+# so this should not look like angled intervals for the splits - these should be interval averages
+
+# make the plot a high resolution plot:
+
+x_grid = seq(min(dataset$Level), max(dataset$Level), 0.01)
+
+ggplot() +
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), 
+             colour = 'red') +
+  geom_line(aes(x = x_grid, y = predict(regressor, newdata = data.frame(Level = x_grid))),
+            colour = 'blue') +
+  ggtitle('Truth or Bluff ( Decision Tree Regression Model)') +
+  xlab('Level') + 
+  ylab('Salary')
+  
+# looking at this, the model will put out a value of $250K, just as the plot shows
+
+# this model is better used in multiple dimensions
+
+# next is random forests, a team of decision trees, so what do we think we will get with a team of 100 trees?
+
+
+#################################################
+### Section 9 - Lecture 78- Random Forest Regression in R
+################################################
+
+
+# just a team of decision trees
+
+# import the data:
+
+dataset = read.csv("Machine Learning A-Z/Part 2 - Regression/Section 9 - Random Forest Regression/Position_Salaries.csv")
+dataset = dataset[2:3]
+
+# run the regression:
+
+install.packages('randomForest')
+
+library(randomForest)
+
+set.seed(1234)
+regressor = randomForest( x = dataset[1], # brackets import a dataframe - what the formula expects
+                          y = dataset$Salary, # expects a vector, which is what the dollar sign does
+                          ntree = 10 )
+
+# plot the results:
+
+library(ggplot2)
+
+x_grid = seq(min(dataset$Level), max(dataset$Level), 0.1)
+
+ggplot() +
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), 
+             colour = 'red') +
+  geom_line(aes(x = x_grid, y = predict(regressor, newdata = data.frame(Level = x_grid))),
+            colour = 'blue') +
+  ggtitle('Truth or Bluff ( Decision Tree Regression Model)') +
+  xlab('Level') + 
+  ylab('Salary')
+
+# looks like we need to increase the resolution in order to get the angled lines verticle:
+
+x_grid = seq(min(dataset$Level), max(dataset$Level), 0.01)
+
+ggplot() +
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), 
+             colour = 'red') +
+  geom_line(aes(x = x_grid, y = predict(regressor, newdata = data.frame(Level = x_grid))),
+            colour = 'blue') +
+  ggtitle('Truth or Bluff ( Decision Tree Regression Model)') +
+  xlab('Level') + 
+  ylab('Salary')
+
+# simply get more steps in the stairs by having more decision trees in the setup
+
+# more you add trees, the closer the convergence of the shape will be to some average
+
+# let's try running 100 trees:
+
+regressor = randomForest( x = dataset[1], # brackets import a dataframe - what the formula expects
+                          y = dataset$Salary, # expects a vector, which is what the dollar sign does
+                          ntree = 100 )
+
+x_grid = seq(min(dataset$Level), max(dataset$Level), 0.01)
+
+ggplot() +
+  geom_point(aes(x = dataset$Level, y = dataset$Salary), 
+             colour = 'red') +
+  geom_line(aes(x = x_grid, y = predict(regressor, newdata = data.frame(Level = x_grid))),
+            colour = 'blue') +
+  ggtitle('Truth or Bluff ( Decision Tree Regression Model)') +
+  xlab('Level') + 
+  ylab('Salary')
+
+# we can see that we don't get many more steps in the regression, but related to the idea of convergence in the plot
+# better choices and locations of steps in the stairs are present with respect ot the axis
+  
